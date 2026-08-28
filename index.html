@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<title>Course WiFi Mapper</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WiFi Mapper">
+<meta name="theme-color" content="#1f6f4f">
+<style>
+  :root{
+    --bg:#f4f6f5; --panel:#ffffff; --ink:#16241f; --muted:#5b6b64;
+    --line:#d8e0dc; --accent:#1f6f4f; --accent-ink:#ffffff;
+    --danger:#b23b3b; --warn:#c98a1e; --good:#1f6f4f; --ok:#7a9a1f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font:16px/1.4 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;}
+  body{padding-bottom:70px;}
+  header{background:var(--accent);color:var(--accent-ink);padding:14px 16px;
+    position:sticky;top:0;z-index:20;}
+  header h1{margin:0;font-size:19px;}
+  header p{margin:2px 0 0;font-size:12.5px;opacity:.9;}
+  nav.tabs{display:flex;position:sticky;top:56px;z-index:19;background:var(--panel);
+    border-bottom:1px solid var(--line);overflow-x:auto;}
+  nav.tabs button{flex:1;min-width:80px;border:none;background:none;padding:10px 6px;
+    font-size:12.5px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;}
+  nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);}
+  main{padding:14px;max-width:720px;margin:0 auto;}
+  section{display:none;}
+  section.active{display:block;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:14px;margin-bottom:14px;}
+  .card h2{margin:0 0 8px;font-size:15px;}
+  .card h3{margin:14px 0 6px;font-size:13.5px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.03em;}
+  p.hint{color:var(--muted);font-size:13.5px;margin:4px 0 10px;}
+  ol.steps{padding-left:20px;font-size:14.5px;}
+  ol.steps li{margin-bottom:8px;}
+  code{background:#eef1ef;padding:1px 5px;border-radius:4px;font-size:13px;}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px;font-weight:600;}
+  input[type=text],input[type=number],textarea,select{
+    width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;
+    font-size:16px;background:#fff;color:var(--ink);}
+  textarea{resize:vertical;min-height:50px;}
+  .row{display:flex;gap:10px;}
+  .row > *{flex:1;}
+  button.btn{display:block;width:100%;padding:13px;border:none;border-radius:10px;
+    background:var(--accent);color:var(--accent-ink);font-size:15.5px;font-weight:700;
+    margin-top:12px;}
+  button.btn.secondary{background:#e7edea;color:var(--accent);}
+  button.btn.danger{background:var(--danger);color:#fff;}
+  button.btn.ghost{background:none;border:1px solid var(--line);color:var(--ink);}
+  button.btn:active{opacity:.8;}
+  .quality-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px;}
+  .quality-grid button{padding:12px 2px;border-radius:8px;border:1px solid var(--line);
+    background:#fff;font-size:13px;font-weight:700;}
+  .quality-grid button.q1{color:var(--danger);} .quality-grid button.q2{color:var(--warn);}
+  .quality-grid button.q3{color:#8a7a1f;} .quality-grid button.q4{color:var(--ok);}
+  .quality-grid button.q5{color:var(--good);}
+  .quality-grid button.selected{background:var(--ink);color:#fff !important;}
+  .mode-toggle{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .mode-toggle button{flex:1;padding:10px;background:#fff;border:none;font-size:13.5px;font-weight:600;color:var(--muted);}
+  .mode-toggle button.active{background:var(--accent);color:#fff;}
+  #gpsStatus{font-size:13px;color:var(--muted);margin-top:6px;}
+  #gpsStatus.ok{color:var(--good);font-weight:600;}
+  .pointlist{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  .pointrow{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;
+    border-bottom:1px solid var(--line);font-size:13px;}
+  .pointrow:last-child{border-bottom:none;}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:8px;flex-shrink:0;}
+  .pointrow .meta{flex:1;}
+  .pointrow .del{color:var(--danger);font-weight:700;padding:2px 8px;}
+  #mapWrap{border:1px solid var(--line);border-radius:10px;overflow:auto;background:#e9efeb;
+    -webkit-overflow-scrolling:touch;}
+  #mapCanvas{display:block;touch-action:manipulation;}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:12px;color:var(--muted);}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .banner{background:#fff7e6;border:1px solid #e9d497;color:#6b5417;border-radius:10px;
+    padding:10px 12px;font-size:13px;margin-bottom:12px;}
+  #detailPanel{font-size:13.5px;background:#f6f8f7;border-radius:8px;padding:10px;margin-top:10px;
+    display:none;}
+  .calib-step{background:#eef1ef;border-radius:8px;padding:10px;margin-top:8px;font-size:13.5px;}
+  .small{font-size:12px;color:var(--muted);}
+  footer.tabbar{position:fixed;bottom:0;left:0;right:0;display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Course WiFi Mapper</h1>
+  <p>Offline signal survey &amp; map — no internet required</p>
+  <p id="offlineStatus" style="font-size:11.5px;opacity:.85;margin-top:4px"></p>
+</header>
+
+<nav class="tabs">
+  <button data-tab="setup" class="active">Setup</button>
+  <button data-tab="log">Log</button>
+  <button data-tab="import">Import</button>
+  <button data-tab="map">Map</button>
+</nav>
+
+<main>
+
+<!-- SETUP TAB -->
+<section id="tab-setup" class="active">
+  <div class="card">
+    <h2>Two ways to log a reading</h2>
+    <p class="hint">iOS doesn't let apps read the actual WiFi dBm number directly — but the built-in <b>Shortcuts</b> app can, via its "Get Network Details" action (iOS 17+). Set that up once for exact numbers, or just use the <b>Log</b> tab on its own for a quick subjective rating. Both feed the same map.</p>
+
+    <h3>Option A — exact dBm via Shortcuts (one-time setup, ~10 min)</h3>
+    <ol class="steps">
+      <li>Open <b>Files</b>, create a new blank text file named <code>wifi-survey-log.csv</code> (in "On My iPhone" or iCloud Drive), and put exactly this as its only line, then save:<br>
+        <code>timestamp,lat,lon,accuracy,ssid,rssi,noise,snr,channel,note</code></li>
+      <li>Open <b>Shortcuts</b> → <b>+</b> → name it "WiFi Point".</li>
+      <li>Add action <b>Get Current Location</b>.</li>
+      <li>Add action <b>Get Network Details</b>.</li>
+      <li>Add a <b>Calculate</b> action: tap the RSSI value from Network Details, subtract the Noise value, to get SNR.</li>
+      <li>Add <b>Format Date</b> (format: ISO 8601) on Current Date, for the timestamp.</li>
+      <li>Add <b>Text</b>, and build one comma-separated line using the chips for: the formatted date, Latitude, Longitude, Horizontal Accuracy (from the Location), Network Name, RSSI, Noise, your calculated SNR, Channel Number — in that order.</li>
+      <li>Add <b>Get File</b> pointing at <code>wifi-survey-log.csv</code>, then <b>Combine Text</b> (existing file text, newline, then your new line), then <b>Save File</b> to the same path with <b>overwrite ON</b>.</li>
+      <li>Add <b>Show Alert</b> displaying the RSSI/SNR chips, so you get instant feedback in the field.</li>
+      <li>On the shortcut's settings (ⓘ), tap <b>Add to Home Screen</b> — this gives you a one-tap icon. A Back Tap or Action Button binding works too.</li>
+    </ol>
+    <p class="small">This runs entirely offline — Shortcuts, Files, and GPS all work with zero signal. Tap the icon at each spot on the course; it appends one row to the CSV every time. AirDrop or iCloud-sync that file to wherever you run this map viewer, then use the <b>Import</b> tab.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Option B — quick subjective rating (no setup)</h3>
+    <p class="hint">Just open the <b>Log</b> tab, get your GPS fix, and tap a 1–5 rating (or "dead zone") at each spot. No Shortcuts needed — good for a fast first pass.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">About this page</h3>
+    <p class="hint">Everything here runs locally in Safari — no data ever leaves your phone, and no internet connection is used at any point, including map rendering. Add this page to your Home Screen (Share → Add to Home Screen) so it opens instantly, offline, like an app.</p>
+  </div>
+</section>
+
+<!-- LOG TAB -->
+<section id="tab-log">
+  <div class="card">
+    <h2>Log a reading here</h2>
+    <button class="btn" id="btnGetGps">Get GPS fix</button>
+    <div id="gpsStatus">No fix yet.</div>
+
+    <h3>Rating method</h3>
+    <div class="mode-toggle" id="ratingModeToggle">
+      <button data-mode="bars" class="active">1–5 rating</button>
+      <button data-mode="dbm">Exact dBm</button>
+      <button data-mode="dead">Dead zone</button>
+    </div>
+
+    <div id="barsInput">
+      <label>How's the connection here?</label>
+      <div class="quality-grid">
+        <button class="q1" data-q="1">1<br>Poor</button>
+        <button class="q2" data-q="2">2</button>
+        <button class="q3" data-q="3">3<br>OK</button>
+        <button class="q4" data-q="4">4</button>
+        <button class="q5" data-q="5">5<br>Great</button>
+      </div>
+    </div>
+
+    <div id="dbmInput" style="display:none">
+      <div class="row">
+        <div><label>RSSI (dBm)</label><input type="number" id="inRssi" placeholder="-63"></div>
+        <div><label>Noise (dBm, optional)</label><input type="number" id="inNoise" placeholder="-90"></div>
+      </div>
+    </div>
+
+    <div id="deadInput" style="display:none">
+      <p class="hint">Marks this point as no signal / dropped connection.</p>
+    </div>
+
+    <label>Note (optional)</label>
+    <textarea id="inNote" placeholder="e.g. behind the willow, judge stand"></textarea>
+
+    <button class="btn" id="btnAddPoint">Add point to map</button>
+  </div>
+
+  <div class="card">
+    <h2>This session — <span id="pointCount">0</span> points</h2>
+    <div class="pointlist" id="pointList"></div>
+    <div class="row">
+      <button class="btn secondary" id="btnExportCsv">Export CSV</button>
+      <button class="btn secondary" id="btnExportKml">Export KML</button>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="btnCopyCsv">Copy CSV text</button>
+      <button class="btn ghost" id="btnCopyKml">Copy KML text</button>
+    </div>
+    <button class="btn ghost" id="btnClearAll">Clear all</button>
+    <p class="small" style="margin-top:8px">CSV: import into a spreadsheet, or into Google My Maps (mymaps.google.com → Import) which auto-detects the lat/lon columns. KML: already colour-coded per point — open directly in the Google Earth app, or import at mymaps.google.com for the same result over a real map. Note: the ordinary Google Maps app itself can't open either file — that import step needs Google My Maps or Google Earth, and needs a connection to load the map tiles (everything up to this point has been offline).</p>
+    <p class="small">If the "Export" download buttons don't do anything in whatever viewer you're using to run this file, use "Copy … text" instead and paste into Notes/Files/Mail to save it.</p>
+  </div>
+</section>
+
+<!-- IMPORT TAB -->
+<section id="tab-import">
+  <div class="card">
+    <h2>Import a CSV log</h2>
+    <p class="hint">Import the file your "WiFi Point" shortcut has been appending to (AirDrop it to this device, or open this page from the Files app / Share sheet). You can import more than once — new rows are added to the current session.</p>
+    <input type="file" id="fileCsv" accept=".csv,text/csv">
+    <p class="small" id="importStatus"></p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Expected columns</h3>
+    <p class="small"><code>timestamp,lat,lon,accuracy,ssid,rssi,noise,snr,channel,note</code> — extra or reordered columns are fine as long as the header names match; missing columns are just left blank.</p>
+  </div>
+</section>
+
+<!-- MAP TAB -->
+<section id="tab-map">
+  <div class="card">
+    <h2>Map</h2>
+    <div class="mode-toggle" id="mapModeToggle">
+      <button data-mode="grid" class="active">Plain grid</button>
+      <button data-mode="photo">Course photo</button>
+    </div>
+
+    <div id="photoControls" style="display:none">
+      <h3>Course photo</h3>
+      <input type="file" id="filePhoto" accept="image/*">
+      <div class="calib-step" id="calibBox" style="display:none">
+        <div id="calibText">Tap two known points on the photo to calibrate (e.g. two spots you've already logged, or two landmarks whose GPS you know).</div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn ghost" id="btnCalib1" style="margin-top:0">Set point 1</button>
+          <button class="btn ghost" id="btnCalib2" style="margin-top:0">Set point 2</button>
+        </div>
+        <div id="calibForm" style="display:none">
+          <label>Point <span id="calibN"></span> — Latitude</label>
+          <input type="number" step="any" id="calibLat">
+          <label>Longitude</label>
+          <input type="number" step="any" id="calibLon">
+          <button class="btn" id="btnCalibSave">Save point</button>
+        </div>
+        <button class="btn" id="btnCalibrate" style="display:none">Calibrate</button>
+      </div>
+    </div>
+
+    <div id="mapWrap" style="margin-top:10px">
+      <canvas id="mapCanvas" width="680" height="500"></canvas>
+    </div>
+
+    <div class="legend">
+      <span><span class="dot" style="background:#1f6f4f"></span>Excellent</span>
+      <span><span class="dot" style="background:#7a9a1f"></span>Good</span>
+      <span><span class="dot" style="background:#c98a1e"></span>Marginal</span>
+      <span><span class="dot" style="background:#b23b3b"></span>Poor</span>
+      <span><span class="dot" style="background:#666"></span>Dead zone</span>
+    </div>
+
+    <div id="detailPanel"></div>
+
+    <div class="row" style="margin-top:12px">
+      <button class="btn secondary" id="btnExportPng">Export map (PNG)</button>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- state ----------
+  var points = []; // {id,ts,lat,lon,acc,ssid,rssi,noise,snr,quality,dead,note}
+  var nextId = 1;
+  var lastFix = null; // {lat,lon,acc}
+  var ratingMode = 'bars';
+  var selectedBars = null;
+  var mapMode = 'grid';
+  var photoImg = null;
+  var calib = {p1:null, p2:null, activeStep:null}; // p1/p2: {px,py,lat,lon}
+  var transform = null; // {a,b,tx,ty, refLat, refLon}
+
+  function save(){
+    try{
+      localStorage.setItem('wifiMapperPoints', JSON.stringify(points));
+      localStorage.setItem('wifiMapperNextId', String(nextId));
+    }catch(e){/* best effort */}
+  }
+  function load(){
+    try{
+      var p = localStorage.getItem('wifiMapperPoints');
+      if(p){ points = JSON.parse(p); }
+      var n = localStorage.getItem('wifiMapperNextId');
+      if(n){ nextId = parseInt(n,10)||1; }
+    }catch(e){}
+  }
+  load();
+
+  // ---------- tabs ----------
+  var tabButtons = document.querySelectorAll('nav.tabs button');
+  tabButtons.forEach(function(b){
+    b.addEventListener('click', function(){
+      tabButtons.forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      document.querySelectorAll('main > section').forEach(function(s){s.classList.remove('active');});
+      document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+      if(b.dataset.tab==='map'){ renderMap(); }
+      if(b.dataset.tab==='log'){ renderPointList(); }
+    });
+  });
+
+  // ---------- GPS ----------
+  var gpsStatusEl = document.getElementById('gpsStatus');
+  document.getElementById('btnGetGps').addEventListener('click', function(){
+    if(!navigator.geolocation){
+      gpsStatusEl.textContent = 'Geolocation not available in this browser.';
+      return;
+    }
+    gpsStatusEl.textContent = 'Getting fix…';
+    gpsStatusEl.className = '';
+    navigator.geolocation.getCurrentPosition(function(pos){
+      lastFix = {lat:pos.coords.latitude, lon:pos.coords.longitude, acc:pos.coords.accuracy};
+      gpsStatusEl.textContent = 'Fix: ' + lastFix.lat.toFixed(6) + ', ' + lastFix.lon.toFixed(6) +
+        '  (±' + Math.round(lastFix.acc) + 'm)';
+      gpsStatusEl.className = 'ok';
+    }, function(err){
+      gpsStatusEl.textContent = 'Could not get a fix (' + err.message + '). Outdoors with clear sky helps; first fix can take up to a minute with no cell/data.';
+    }, {enableHighAccuracy:true, timeout:45000, maximumAge:0});
+  });
+
+  // ---------- rating mode toggle ----------
+  var ratingToggle = document.getElementById('ratingModeToggle');
+  ratingToggle.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      ratingToggle.querySelectorAll('button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      ratingMode = b.dataset.mode;
+      document.getElementById('barsInput').style.display = ratingMode==='bars' ? '' : 'none';
+      document.getElementById('dbmInput').style.display = ratingMode==='dbm' ? '' : 'none';
+      document.getElementById('deadInput').style.display = ratingMode==='dead' ? '' : 'none';
+    });
+  });
+  document.querySelectorAll('.quality-grid button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.quality-grid button').forEach(function(x){x.classList.remove('selected');});
+      b.classList.add('selected');
+      selectedBars = parseInt(b.dataset.q,10);
+    });
+  });
+
+  document.getElementById('btnAddPoint').addEventListener('click', function(){
+    if(!lastFix){
+      alert('Get a GPS fix first.');
+      return;
+    }
+    var p = {
+      id: nextId++, ts: new Date().toISOString(),
+      lat: lastFix.lat, lon: lastFix.lon, acc: lastFix.acc,
+      ssid:null, rssi:null, noise:null, snr:null, quality:null, dead:false,
+      note: document.getElementById('inNote').value || ''
+    };
+    if(ratingMode==='bars'){
+      if(!selectedBars){ alert('Pick a 1–5 rating.'); return; }
+      p.quality = selectedBars;
+    } else if(ratingMode==='dbm'){
+      var r = parseFloat(document.getElementById('inRssi').value);
+      if(isNaN(r)){ alert('Enter an RSSI value.'); return; }
+      p.rssi = r;
+      var n = parseFloat(document.getElementById('inNoise').value);
+      if(!isNaN(n)){ p.noise = n; p.snr = r - n; }
+    } else if(ratingMode==='dead'){
+      p.dead = true;
+    }
+    points.push(p);
+    save();
+    document.getElementById('inNote').value = '';
+    selectedBars = null;
+    document.querySelectorAll('.quality-grid button').forEach(function(x){x.classList.remove('selected');});
+    document.getElementById('inRssi').value = '';
+    document.getElementById('inNoise').value = '';
+    renderPointList();
+  });
+
+  function renderPointList(){
+    document.getElementById('pointCount').textContent = points.length;
+    var el = document.getElementById('pointList');
+    el.innerHTML = '';
+    points.slice().reverse().forEach(function(p){
+      var row = document.createElement('div');
+      row.className = 'pointrow';
+      var dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.background = colorFor(p);
+      var meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = labelFor(p) + '  ·  ' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5) +
+        (p.note ? '  — ' + p.note : '');
+      var del = document.createElement('span');
+      del.className = 'del';
+      del.textContent = '✕';
+      del.addEventListener('click', function(){
+        points = points.filter(function(x){return x.id!==p.id;});
+        save();
+        renderPointList();
+      });
+      row.appendChild(dot); row.appendChild(meta); row.appendChild(del);
+      el.appendChild(row);
+    });
+  }
+
+  document.getElementById('btnClearAll').addEventListener('click', function(){
+    if(confirm('Remove all ' + points.length + ' points from this session? This does not touch any CSV file already saved on your phone.')){
+      points = [];
+      save();
+      renderPointList();
+    }
+  });
+
+  // ---------- quality / color / tier ----------
+  var TIERS = {
+    excellent:{color:'#1f6f4f', label:'Excellent'},
+    good:     {color:'#7a9a1f', label:'Good'},
+    marginal: {color:'#c98a1e', label:'Marginal'},
+    poor:     {color:'#b23b3b', label:'Poor'},
+    dead:     {color:'#666666', label:'Dead zone'},
+    unknown:  {color:'#999999', label:'Unrated'}
+  };
+  function tierFor(p){
+    if(p.dead) return 'dead';
+    var snr = p.snr;
+    if(snr==null && p.rssi!=null && p.noise!=null) snr = p.rssi - p.noise;
+    if(snr!=null){
+      if(snr>=25) return 'excellent';
+      if(snr>=15) return 'good';
+      if(snr>=10) return 'marginal';
+      return 'poor';
+    }
+    if(p.rssi!=null){
+      if(p.rssi>=-60) return 'excellent';
+      if(p.rssi>=-70) return 'good';
+      if(p.rssi>=-80) return 'marginal';
+      return 'poor';
+    }
+    if(p.quality!=null){
+      return ['poor','marginal','marginal','good','excellent'][p.quality-1];
+    }
+    return 'unknown';
+  }
+  function colorFor(p){ return TIERS[tierFor(p)].color; }
+  function labelFor(p){
+    if(p.dead) return 'Dead zone';
+    if(p.snr!=null) return 'SNR ' + p.snr.toFixed(0) + 'dB (RSSI ' + p.rssi + ')';
+    if(p.rssi!=null) return 'RSSI ' + p.rssi + 'dBm';
+    if(p.quality!=null) return 'Rating ' + p.quality + '/5';
+    return 'Point';
+  }
+  function hexToKmlColor(hex){
+    hex = hex.replace('#','');
+    var r = hex.substr(0,2), g = hex.substr(2,2), b = hex.substr(4,2);
+    return 'ff' + b + g + r; // KML color order is aabbggrr
+  }
+  function xmlEscape(s){
+    return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ---------- CSV import ----------
+  function parseCsv(text){
+    var lines = text.split(/\r\n|\n|\r/).filter(function(l){return l.trim().length;});
+    if(!lines.length) return [];
+    var headers = splitCsvLine(lines[0]).map(function(h){return h.trim().toLowerCase();});
+    var rows = [];
+    for(var i=1;i<lines.length;i++){
+      var cells = splitCsvLine(lines[i]);
+      var row = {};
+      headers.forEach(function(h,idx){ row[h] = cells[idx]!==undefined ? cells[idx].trim() : ''; });
+      rows.push(row);
+    }
+    return rows;
+  }
+  function splitCsvLine(line){
+    var out = []; var cur=''; var inQ=false;
+    for(var i=0;i<line.length;i++){
+      var c = line[i];
+      if(c==='"'){ inQ = !inQ; continue; }
+      if(c===',' && !inQ){ out.push(cur); cur=''; continue; }
+      cur += c;
+    }
+    out.push(cur);
+    return out;
+  }
+  function num(v){ if(v===undefined||v==='') return null; var n=parseFloat(v); return isNaN(n)?null:n; }
+
+  document.getElementById('fileCsv').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var rows = parseCsv(reader.result);
+      var added = 0;
+      rows.forEach(function(r){
+        var lat = num(r.lat), lon = num(r.lon);
+        if(lat==null || lon==null) return;
+        points.push({
+          id: nextId++,
+          ts: r.timestamp || new Date().toISOString(),
+          lat: lat, lon: lon, acc: num(r.accuracy),
+          ssid: r.ssid || null,
+          rssi: num(r.rssi), noise: num(r.noise), snr: num(r.snr),
+          quality: null, dead: false,
+          note: r.note || ''
+        });
+        added++;
+      });
+      save();
+      document.getElementById('importStatus').textContent = 'Imported ' + added + ' rows. Total in session: ' + points.length + '.';
+      renderPointList();
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- CSV / KML builders (shared by download + copy) ----------
+  function buildCsv(){
+    var header = 'timestamp,lat,lon,accuracy,ssid,rssi,noise,snr,quality,dead,note';
+    var lines = [header];
+    points.forEach(function(p){
+      lines.push([
+        p.ts, p.lat, p.lon, p.acc!=null?p.acc:'', p.ssid||'',
+        p.rssi!=null?p.rssi:'', p.noise!=null?p.noise:'', p.snr!=null?p.snr:'',
+        p.quality!=null?p.quality:'', p.dead?'1':'0',
+        '"' + (p.note||'').replace(/"/g,'""') + '"'
+      ].join(','));
+    });
+    return lines.join('\n');
+  }
+  function buildKml(){
+    var styleBlocks = Object.keys(TIERS).map(function(key){
+      return '<Style id="st-' + key + '"><IconStyle><color>' + hexToKmlColor(TIERS[key].color) +
+        '</color><scale>1.1</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>';
+    }).join('\n');
+    var placemarks = points.map(function(p){
+      var desc = [
+        labelFor(p),
+        p.ssid ? 'SSID: ' + p.ssid : '',
+        p.channel!=null ? 'Channel ' + p.channel : '',
+        p.acc!=null ? 'GPS accuracy ±' + Math.round(p.acc) + 'm' : '',
+        new Date(p.ts).toLocaleString(),
+        p.note || ''
+      ].filter(Boolean).join('\n');
+      return '<Placemark>' +
+        '<name>' + xmlEscape(labelFor(p)) + '</name>' +
+        '<description>' + xmlEscape(desc) + '</description>' +
+        '<styleUrl>#st-' + tierFor(p) + '</styleUrl>' +
+        '<Point><coordinates>' + p.lon + ',' + p.lat + ',0</coordinates></Point>' +
+        '</Placemark>';
+    }).join('\n');
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n' +
+      '<name>Course WiFi Survey</name>\n' +
+      styleBlocks + '\n' + placemarks + '\n' +
+      '</Document></kml>';
+  }
+
+  // ---------- export CSV ----------
+  document.getElementById('btnExportCsv').addEventListener('click', function(){
+    downloadText(buildCsv(), 'wifi-survey-session-' + Date.now() + '.csv', 'text/csv');
+  });
+  document.getElementById('btnCopyCsv').addEventListener('click', function(){
+    copyText(buildCsv(), this);
+  });
+
+  // ---------- export KML (Google Earth / Google My Maps) ----------
+  document.getElementById('btnExportKml').addEventListener('click', function(){
+    if(!points.length){ alert('No points to export yet.'); return; }
+    downloadText(buildKml(), 'wifi-survey-' + Date.now() + '.kml', 'application/vnd.google-earth.kml+xml');
+  });
+  document.getElementById('btnCopyKml').addEventListener('click', function(){
+    if(!points.length){ alert('No points to export yet.'); return; }
+    copyText(buildKml(), this);
+  });
+
+  function copyText(text, btn){
+    var done = function(ok){
+      var orig = btn.textContent;
+      btn.textContent = ok ? 'Copied ✓' : 'Copy failed';
+      setTimeout(function(){ btn.textContent = orig; }, 1500);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){done(true);}, function(){ fallbackCopy(text, done); });
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+  function fallbackCopy(text, done){
+    try{
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      done(ok);
+    }catch(e){ done(false); }
+  }
+
+  function downloadText(content, filename, mime){
+    var blob = new Blob([content], {type: mime});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);}, 4000);
+  }
+
+  // ---------- map mode toggle ----------
+  var mapToggle = document.getElementById('mapModeToggle');
+  mapToggle.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      mapToggle.querySelectorAll('button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      mapMode = b.dataset.mode;
+      document.getElementById('photoControls').style.display = mapMode==='photo' ? '' : 'none';
+      renderMap();
+    });
+  });
+
+  // ---------- photo + calibration ----------
+  document.getElementById('filePhoto').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        photoImg = img;
+        calib = {p1:null, p2:null, activeStep:null};
+        transform = null;
+        document.getElementById('calibBox').style.display = '';
+        renderMap();
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('btnCalib1').addEventListener('click', function(){ startCalibStep(1); });
+  document.getElementById('btnCalib2').addEventListener('click', function(){ startCalibStep(2); });
+  function startCalibStep(n){
+    calib.activeStep = n;
+    document.getElementById('calibText').textContent = 'Tap point ' + n + ' on the photo below.';
+  }
+
+  var canvas = document.getElementById('mapCanvas');
+  var ctx = canvas.getContext('2d');
+
+  canvas.addEventListener('click', function(evt){
+    var rect = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rect.width;
+    var scaleY = canvas.height / rect.height;
+    var px = (evt.clientX - rect.left) * scaleX;
+    var py = (evt.clientY - rect.top) * scaleY;
+
+    if(mapMode==='photo' && calib.activeStep){
+      var target = calib.activeStep===1 ? 'p1' : 'p2';
+      calib[target] = {px:px, py:py, lat:null, lon:null};
+      document.getElementById('calibForm').style.display = '';
+      document.getElementById('calibN').textContent = calib.activeStep;
+      calib.activeStep = null;
+      renderMap();
+      return;
+    }
+    // otherwise: show nearest point detail
+    showNearest(px, py);
+  });
+
+  document.getElementById('btnCalibSave').addEventListener('click', function(){
+    var lat = parseFloat(document.getElementById('calibLat').value);
+    var lon = parseFloat(document.getElementById('calibLon').value);
+    if(isNaN(lat)||isNaN(lon)){ alert('Enter both latitude and longitude.'); return; }
+    var target = (calib.p1 && calib.p1.lat==null) ? 'p1' : 'p2';
+    calib[target].lat = lat; calib[target].lon = lon;
+    document.getElementById('calibForm').style.display = 'none';
+    document.getElementById('calibLat').value=''; document.getElementById('calibLon').value='';
+    if(calib.p1 && calib.p1.lat!=null && calib.p2 && calib.p2.lat!=null){
+      document.getElementById('btnCalibrate').style.display = '';
+    }
+    renderMap();
+  });
+
+  document.getElementById('btnCalibrate').addEventListener('click', function(){
+    if(!(calib.p1 && calib.p2 && calib.p1.lat!=null && calib.p2.lat!=null)){
+      alert('Set both calibration points with their coordinates first.'); return;
+    }
+    var refLat = calib.p1.lat, refLon = calib.p1.lon;
+    var e1 = toEnu(calib.p1.lat, calib.p1.lon, refLat, refLon);
+    var e2 = toEnu(calib.p2.lat, calib.p2.lon, refLat, refLon);
+    var dEx = e2.x - e1.x, dEy = e2.y - e1.y;
+    var dPx = calib.p2.px - calib.p1.px, dPy = calib.p2.py - calib.p1.py;
+    var d2 = dEx*dEx + dEy*dEy;
+    if(d2 < 1e-6){ alert('The two calibration points are too close together (or share the same coordinates).'); return; }
+    var a = (dPx*dEx + dPy*dEy) / d2;
+    var b = (dPy*dEx - dPx*dEy) / d2;
+    var tx = calib.p1.px - a*e1.x + b*e1.y;
+    var ty = calib.p1.py - b*e1.x - a*e1.y;
+    transform = {a:a, b:b, tx:tx, ty:ty, refLat:refLat, refLon:refLon};
+    document.getElementById('calibText').textContent = 'Calibrated. Add more points any time — they will land in the right place.';
+    renderMap();
+  });
+
+  // ---------- geo projection (local equirectangular, metres) ----------
+  function toEnu(lat, lon, refLat, refLon){
+    var R = 6371000;
+    var dLat = (lat - refLat) * Math.PI/180;
+    var dLon = (lon - refLon) * Math.PI/180;
+    var x = dLon * Math.cos(refLat*Math.PI/180) * R; // east, metres
+    var y = dLat * R; // north, metres
+    return {x:x, y:y};
+  }
+
+  // ---------- rendering ----------
+  function renderMap(){
+    var w = canvas.parentElement.clientWidth || 680;
+    canvas.width = Math.max(320, w);
+    canvas.height = mapMode==='photo' && photoImg ? Math.round(canvas.width * (photoImg.height/photoImg.width)) : 500;
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = '#e9efeb';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    if(mapMode==='photo'){
+      if(photoImg){
+        ctx.drawImage(photoImg, 0, 0, canvas.width, canvas.height);
+        var sx = canvas.width / photoImg.width;
+        // draw calib markers
+        [calib.p1, calib.p2].forEach(function(c, i){
+          if(!c) return;
+          var x = c.px*sx, y = c.py*sx;
+          ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x-8,y); ctx.lineTo(x+8,y); ctx.moveTo(x,y-8); ctx.lineTo(x,y+8); ctx.stroke();
+          ctx.fillStyle = '#333'; ctx.font = '12px sans-serif';
+          ctx.fillText('P'+(i+1), x+10, y-10);
+        });
+        if(transform){
+          points.forEach(function(p){
+            var e = toEnu(p.lat, p.lon, transform.refLat, transform.refLon);
+            var px = (transform.a*e.x - transform.b*e.y + transform.tx) * sx;
+            var py = (transform.b*e.x + transform.a*e.y + transform.ty) * sx;
+            drawPin(px, py, p);
+          });
+        }
+      } else {
+        ctx.fillStyle = '#5b6b64'; ctx.font = '14px sans-serif'; ctx.textAlign='center';
+        ctx.fillText('Upload a course photo above to place points on it.', canvas.width/2, canvas.height/2);
+        ctx.textAlign='left';
+      }
+      return;
+    }
+
+    // grid mode
+    if(points.length===0){
+      ctx.fillStyle = '#5b6b64'; ctx.font = '14px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Log or import some points to see the map.', canvas.width/2, canvas.height/2);
+      ctx.textAlign='left';
+      return;
+    }
+    var refLat = points[0].lat, refLon = points[0].lon;
+    var pts = points.map(function(p){
+      var e = toEnu(p.lat, p.lon, refLat, refLon);
+      return {x:e.x, y:e.y, p:p};
+    });
+    var xs = pts.map(function(p){return p.x;}), ys = pts.map(function(p){return p.y;});
+    var minX=Math.min.apply(null,xs), maxX=Math.max.apply(null,xs);
+    var minY=Math.min.apply(null,ys), maxY=Math.max.apply(null,ys);
+    var spanX = Math.max(maxX-minX, 10), spanY = Math.max(maxY-minY, 10);
+    var pad = 40;
+    var scale = Math.min((canvas.width-2*pad)/spanX, (canvas.height-2*pad)/spanY);
+    var cx = (minX+maxX)/2, cy=(minY+maxY)/2;
+    function project(x,y){
+      return {
+        x: canvas.width/2 + (x-cx)*scale,
+        y: canvas.height/2 - (y-cy)*scale // flip: north = up
+      };
+    }
+    // grid lines
+    ctx.strokeStyle = '#d3dcd7'; ctx.lineWidth = 1;
+    for(var gx=-1000; gx<=1000; gx+=20){
+      var a = project(gx+minX-20, minY-100), b = project(gx+minX-20, maxY+100);
+    }
+    // north arrow
+    ctx.strokeStyle = '#333'; ctx.fillStyle='#333'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(30,50); ctx.lineTo(30,20); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(30,20); ctx.lineTo(25,30); ctx.lineTo(35,30); ctx.closePath(); ctx.fill();
+    ctx.font='12px sans-serif'; ctx.fillText('N', 36, 30);
+    // scale bar
+    var barMetres = niceScale(spanX/3);
+    var barPx = barMetres*scale;
+    var by = canvas.height - 24;
+    ctx.beginPath(); ctx.moveTo(30,by); ctx.lineTo(30+barPx,by); ctx.stroke();
+    ctx.fillText(barMetres + ' m', 30, by-6);
+
+    pts.forEach(function(pp){
+      var xy = project(pp.x, pp.y);
+      drawPin(xy.x, xy.y, pp.p);
+    });
+  }
+  function niceScale(target){
+    var steps = [5,10,20,25,50,100,200,250,500,1000];
+    var best = steps[0];
+    steps.forEach(function(s){ if(Math.abs(s-target) < Math.abs(best-target)) best = s; });
+    return best;
+  }
+  function drawPin(x,y,p){
+    ctx.beginPath();
+    ctx.arc(x,y,7,0,Math.PI*2);
+    ctx.fillStyle = colorFor(p);
+    ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    if(p.dead){
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(x-3,y-3); ctx.lineTo(x+3,y+3); ctx.moveTo(x+3,y-3); ctx.lineTo(x-3,y+3); ctx.stroke();
+    }
+    p._sx = x; p._sy = y;
+  }
+  function showNearest(px,py){
+    var best=null, bestD=22;
+    points.forEach(function(p){
+      if(p._sx==null) return;
+      var d = Math.hypot(p._sx-px, p._sy-py);
+      if(d<bestD){bestD=d; best=p;}
+    });
+    var panel = document.getElementById('detailPanel');
+    if(!best){ panel.style.display='none'; return; }
+    panel.style.display='';
+    panel.innerHTML = '<b>' + labelFor(best) + '</b><br>' +
+      best.lat.toFixed(6) + ', ' + best.lon.toFixed(6) +
+      (best.acc!=null ? ' (±'+Math.round(best.acc)+'m)' : '') + '<br>' +
+      (best.ssid ? 'SSID: '+best.ssid+'<br>' : '') +
+      (best.channel!=null ? 'Channel '+best.channel+'<br>' : '') +
+      new Date(best.ts).toLocaleString() +
+      (best.note ? '<br>' + best.note : '');
+  }
+
+  document.getElementById('btnExportPng').addEventListener('click', function(){
+    canvas.toBlob(function(blob){
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = 'course-wifi-map-' + Date.now() + '.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){URL.revokeObjectURL(url);}, 4000);
+    });
+  });
+
+  window.addEventListener('resize', function(){ if(document.getElementById('tab-map').classList.contains('active')) renderMap(); });
+
+  // ---------- offline readiness (service worker) ----------
+  var statusEl = document.getElementById('offlineStatus');
+  if('serviceWorker' in navigator){
+    statusEl.textContent = 'Checking offline readiness…';
+    navigator.serviceWorker.register('sw.js').then(function(){
+      return navigator.serviceWorker.ready;
+    }).then(function(){
+      statusEl.textContent = navigator.onLine
+        ? '✓ Cached for offline use'
+        : '✓ Running offline from cache';
+    }).catch(function(){
+      statusEl.textContent = 'Offline caching unavailable in this viewer — Export/Copy still work.';
+    });
+  } else {
+    statusEl.textContent = 'Offline caching unavailable in this viewer — Export/Copy still work.';
+  }
+
+  renderPointList();
+})();
+</script>
+</body>
+</html>
