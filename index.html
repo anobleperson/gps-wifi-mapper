@@ -113,20 +113,21 @@
     <p class="hint">iOS doesn't let apps read the actual WiFi dBm number directly — but the built-in <b>Shortcuts</b> app can, via its "Get Network Details" action (iOS 17+). Set that up once for exact numbers, or just use the <b>Log</b> tab on its own for a quick subjective rating. Both feed the same map.</p>
 
     <h3>Option A — exact dBm via Shortcuts (one-time setup, ~10 min)</h3>
+    <p class="small">Steps below match the current Shortcuts app (iOS 17 and later). Action names in mid‑2020s builds are a little different from older tutorials — notably <b>Append to Text File</b> replaces the old Get File → Combine Text → Save File dance, and the Location action no longer exposes horizontal accuracy (that column is just left blank).</p>
     <ol class="steps">
       <li>Open <b>Files</b>, create a new blank text file named <code>wifi-survey-log.csv</code> (in "On My iPhone" or iCloud Drive), and put exactly this as its only line, then save:<br>
         <code>timestamp,lat,lon,accuracy,ssid,rssi,noise,snr,channel,note</code></li>
       <li>Open <b>Shortcuts</b> → <b>+</b> → name it "WiFi Point".</li>
-      <li>Add action <b>Get Current Location</b>.</li>
-      <li>Add action <b>Get Network Details</b>.</li>
-      <li>Add a <b>Calculate</b> action: tap the RSSI value from Network Details, subtract the Noise value, to get SNR.</li>
-      <li>Add <b>Format Date</b> (format: ISO 8601) on Current Date, for the timestamp.</li>
-      <li>Add <b>Text</b>, and build one comma-separated line using the chips for: the formatted date, Latitude, Longitude, Horizontal Accuracy (from the Location), Network Name, RSSI, Noise, your calculated SNR, Channel Number — in that order.</li>
-      <li>Add <b>Get File</b> pointing at <code>wifi-survey-log.csv</code>, then <b>Combine Text</b> (existing file text, newline, then your new line), then <b>Save File</b> to the same path with <b>overwrite ON</b>.</li>
-      <li>Add <b>Show Alert</b> displaying the RSSI/SNR chips, so you get instant feedback in the field.</li>
-      <li>On the shortcut's settings (ⓘ), tap <b>Add to Home Screen</b> — this gives you a one-tap icon. A Back Tap or Action Button binding works too.</li>
+      <li>Add <b>Get Current Location</b>.</li>
+      <li>Add <b>Get Network Details</b> for Wi‑Fi. This is where the Network Name, RSSI, Noise, and Channel come from — if your version returns one detail per action, add a copy of the action for each value you need.</li>
+      <li>Add <b>Calculate</b>: RSSI − Noise → this is your SNR.</li>
+      <li>Add <b>Format Date</b> on Current Date, format <b>ISO 8601</b>, for the timestamp.</li>
+      <li>Add <b>Text</b> and type one comma-separated line, inserting variables for: formatted date, Latitude, Longitude, <i>then an empty field</i> (two commas in a row — accuracy isn't available from Shortcuts), Network Name, RSSI, Noise, your calculated SNR, Channel — in that order. It should look like <code>2026-01-01T09:00:00Z,-42.1,146.3,,mANTBox,-63,-92,29,6</code></li>
+      <li>Add <b>Append to Text File</b>: <b>Text</b> = the Text output from the previous step, <b>File Path</b> = <code>wifi-survey-log.csv</code> (same location you made it), and turn on <b>Make New Line</b> so each run starts a fresh row.</li>
+      <li>Add <b>Show Alert</b> (or Show Result) with the RSSI and SNR variables, so you get instant feedback in the field.</li>
+      <li>In the shortcut's settings (⌄ / ⓘ at the top), tap <b>Add to Home Screen</b> for a one-tap icon. A Back Tap or Action Button binding works too.</li>
     </ol>
-    <p class="small">This runs entirely offline — Shortcuts, Files, and GPS all work with zero signal. Tap the icon at each spot on the course; it appends one row to the CSV every time. AirDrop or iCloud-sync that file to wherever you run this map viewer, then use the <b>Import</b> tab.</p>
+    <p class="small">This runs entirely offline — Shortcuts, Files, and GPS all work with zero signal. Tap the icon at each spot on the course; it appends one row to the CSV every time. AirDrop or iCloud-sync that file to wherever you run this map viewer, then use the <b>Import</b> tab. (The <code>accuracy</code> column stays empty from this path — the <b>Log</b> tab still records GPS accuracy when you enter readings by hand.)</p>
   </div>
 
   <div class="card">
