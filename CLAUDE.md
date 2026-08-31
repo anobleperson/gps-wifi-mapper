@@ -80,6 +80,15 @@ change the SNR/RSSI thresholds, that's the only place to edit. Currently: SNR
 when noise isn't known: ≥-60 excellent, ≥-70 good, ≥-80 marginal, else poor); a
 1–5 manual rating maps onto the same five tiers.
 
+Each tier also carries an `icon` — a pre-coloured `maps.google.com/mapfiles/kml`
+paddle URL. This is deliberate: **Google My Maps ignores the `<color>` tint on
+KML `IconStyle`, and ignores `<styleUrl>` references to shared Document-level
+styles on import**. So `buildKml()` writes a full inline `<Style>` on every
+`<Placemark>` (no shared styles, no `styleUrl`) and the colour rides on the icon
+file itself; the `<color>` tint is still emitted for Google Earth, which reads
+the inline style fine. If My Maps shows every pin the same colour again, that
+pair of quirks is what regressed.
+
 **Expected CSV columns** (header-name matched, order-independent):
 `timestamp,lat,lon,accuracy,ssid,rssi,noise,snr,channel,note`. If you change
 this, update both the Shortcut-building instructions in the Setup tab and the
@@ -135,7 +144,7 @@ is an open opportunity — nothing has been attempted.
 - `manifest.json` — standard web app manifest, `display: standalone`, theme
   colour `#1f6f4f`.
 - `sw.js` — cache-first service worker. **Bump `CACHE_NAME` on every release**
-  (currently `course-wifi-mapper-v2`), or returning phones keep serving the
+  (currently `course-wifi-mapper-v3`), or returning phones keep serving the
   stale cached version. Caches `./`, `./index.html`, `./manifest.json`, and both
   icons on install; on activate, deletes any cache whose name doesn't match
   `CACHE_NAME`.

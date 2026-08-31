@@ -417,13 +417,17 @@
   });
 
   // ---------- quality / color / tier ----------
+  // `icon` is a pre-coloured Google map icon URL. Google My Maps ignores the
+  // <color> tint on IconStyle, so the colour has to come from the icon file
+  // itself — these paddle icons are in My Maps' recognised set and survive
+  // KML import. Google Earth honours both the icon and the <color> tint.
   var TIERS = {
-    excellent:{color:'#1f6f4f', label:'Excellent'},
-    good:     {color:'#7a9a1f', label:'Good'},
-    marginal: {color:'#c98a1e', label:'Marginal'},
-    poor:     {color:'#b23b3b', label:'Poor'},
-    dead:     {color:'#666666', label:'Dead zone'},
-    unknown:  {color:'#999999', label:'Unrated'}
+    excellent:{color:'#1f6f4f', label:'Excellent', icon:'http://maps.google.com/mapfiles/kml/paddle/grn-circle.png'},
+    good:     {color:'#7a9a1f', label:'Good',      icon:'http://maps.google.com/mapfiles/kml/paddle/ylw-circle.png'},
+    marginal: {color:'#c98a1e', label:'Marginal',  icon:'http://maps.google.com/mapfiles/kml/paddle/orange-circle.png'},
+    poor:     {color:'#b23b3b', label:'Poor',      icon:'http://maps.google.com/mapfiles/kml/paddle/red-circle.png'},
+    dead:     {color:'#666666', label:'Dead zone', icon:'http://maps.google.com/mapfiles/kml/paddle/purple-circle.png'},
+    unknown:  {color:'#999999', label:'Unrated',   icon:'http://maps.google.com/mapfiles/kml/paddle/wht-circle.png'}
   };
   function tierFor(p){
     if(p.dead) return 'dead';
@@ -533,11 +537,8 @@
     return lines.join('\n');
   }
   function buildKml(){
-    var styleBlocks = Object.keys(TIERS).map(function(key){
-      return '<Style id="st-' + key + '"><IconStyle><color>' + hexToKmlColor(TIERS[key].color) +
-        '</color><scale>1.1</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>';
-    }).join('\n');
     var placemarks = points.map(function(p){
+      var tier = tierFor(p);
       var desc = [
         labelFor(p),
         p.ssid ? 'SSID: ' + p.ssid : '',
@@ -546,17 +547,24 @@
         new Date(p.ts).toLocaleString(),
         p.note || ''
       ].filter(Boolean).join('\n');
+      // Full inline <Style> per Placemark, no shared <styleUrl>: Google My Maps
+      // does not resolve styleUrl references to Document-level styles on import,
+      // and ignores the <color> tint on IconStyle — so the colour has to ride
+      // on the icon href (a pre-coloured Google paddle icon). Google Earth reads
+      // this inline style fine too.
       return '<Placemark>' +
         '<name>' + xmlEscape(labelFor(p)) + '</name>' +
         '<description>' + xmlEscape(desc) + '</description>' +
-        '<styleUrl>#st-' + tierFor(p) + '</styleUrl>' +
+        '<Style><IconStyle><color>' + hexToKmlColor(TIERS[tier].color) +
+          '</color><scale>1.1</scale><Icon><href>' + TIERS[tier].icon + '</href></Icon></IconStyle>' +
+          '<LabelStyle><scale>0.8</scale></LabelStyle></Style>' +
         '<Point><coordinates>' + p.lon + ',' + p.lat + ',0</coordinates></Point>' +
         '</Placemark>';
     }).join('\n');
     return '<?xml version="1.0" encoding="UTF-8"?>\n' +
       '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n' +
       '<name>Course WiFi Survey</name>\n' +
-      styleBlocks + '\n' + placemarks + '\n' +
+      placemarks + '\n' +
       '</Document></kml>';
   }
 
