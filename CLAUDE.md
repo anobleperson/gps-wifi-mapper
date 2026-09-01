@@ -144,7 +144,7 @@ is an open opportunity — nothing has been attempted.
 - `manifest.json` — standard web app manifest, `display: standalone`, theme
   colour `#1f6f4f`.
 - `sw.js` — cache-first service worker. **Bump `CACHE_NAME` on every release**
-  (currently `course-wifi-mapper-v3`), or returning phones keep serving the
+  (currently `course-wifi-mapper-v4`), or returning phones keep serving the
   stale cached version. Caches `./`, `./index.html`, `./manifest.json`, and both
   icons on install; on activate, deletes any cache whose name doesn't match
   `CACHE_NAME`.

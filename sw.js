@@ -1,6 +1,6 @@
 // Course WiFi Mapper - offline service worker
 // Bump CACHE_NAME on every release so old caches get cleared out.
-const CACHE_NAME = 'course-wifi-mapper-v3';
+const CACHE_NAME = 'course-wifi-mapper-v4';
 const CORE_ASSETS = [
   './',
   './index.html',

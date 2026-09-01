@@ -539,6 +539,9 @@
   function buildKml(){
     var placemarks = points.map(function(p){
       var tier = tierFor(p);
+      // Lead the placemark name with the SSID so networks are tellable apart
+      // in the Google My Maps / Earth feature list.
+      var name = (p.ssid ? p.ssid + ' · ' : '') + labelFor(p);
       var desc = [
         labelFor(p),
         p.ssid ? 'SSID: ' + p.ssid : '',
@@ -553,7 +556,7 @@
       // on the icon href (a pre-coloured Google paddle icon). Google Earth reads
       // this inline style fine too.
       return '<Placemark>' +
-        '<name>' + xmlEscape(labelFor(p)) + '</name>' +
+        '<name>' + xmlEscape(name) + '</name>' +
         '<description>' + xmlEscape(desc) + '</description>' +
         '<Style><IconStyle><color>' + hexToKmlColor(TIERS[tier].color) +
           '</color><scale>1.1</scale><Icon><href>' + TIERS[tier].icon + '</href></Icon></IconStyle>' +
